@@ -1,0 +1,41 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=/api
+    command: npx vite --host 0.0.0.0
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_uv_cache:/app/.venv
+    environment:
+      - ENVIRONMENT=development
+      - MAX_UPLOAD_SIZE_MB=500
+      - ALLOWED_ORIGINS=http://localhost:3100,http://localhost:5173
+    command: uv run uvicorn audity_api.main:app --host 0.0.0.0 --port 8000 --reload --app-dir src
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  backend_uv_cache:

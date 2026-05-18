@@ -1,0 +1,1 @@
+export { WaveformEditor } from "./WaveformEditor";
