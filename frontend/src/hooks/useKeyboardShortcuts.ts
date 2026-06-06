@@ -3,7 +3,11 @@ import { useEditorStore } from "@/store/editorStore";
 import { usePlaybackStore } from "@/store/playbackStore";
 import { useUIStore } from "@/store/uiStore";
 import { useAudioEngine } from "./useAudioEngine";
-import { CURSOR_NUDGE_SAMPLES, CURSOR_NUDGE_LARGE } from "@/lib/constants";
+import {
+  CURSOR_NUDGE_SAMPLES,
+  CURSOR_NUDGE_LARGE,
+  DEFAULT_SAMPLES_PER_PIXEL,
+} from "@/lib/constants";
 
 export function useKeyboardShortcuts() {
   const engine = useAudioEngine();
@@ -31,6 +35,7 @@ export function useKeyboardShortcuts() {
 
       const ctrl = e.ctrlKey || e.metaKey;
       const shift = e.shiftKey;
+      const isPlaying = usePlaybackStore.getState().isPlaying;
       const state = useEditorStore.getState();
       const ui = useUIStore.getState();
 
@@ -128,19 +133,43 @@ export function useKeyboardShortcuts() {
       // --- Cursor navigation ---
       if (key === "arrowleft" && !shift && !ctrl) {
         e.preventDefault();
-        const c = Math.max(0, state.cursor - CURSOR_NUDGE_SAMPLES);
-        state.setCursor(c);
-        ensureCursorVisible(c);
+        if (isPlaying) {
+          const c = Math.max(0, state.cursor - CURSOR_NUDGE_SAMPLES);
+          state.setCursor(c);
+          ensureCursorVisible(c);
+        } else {
+          const el = document.querySelector("[data-waveform-editor]");
+          const width = el ? el.clientWidth : 800;
+          const drawableWidth = Math.max(width - 40, 1);
+          const scrollDelta = Math.max(1, drawableWidth * 0.1 * state.samplesPerPixel);
+          const maxOffset = Math.max(
+            0,
+            (state.audioBuffer?.length ?? 0) - drawableWidth * state.samplesPerPixel,
+          );
+          state.setScrollOffset(Math.max(0, Math.min(maxOffset, state.scrollOffset - scrollDelta)));
+        }
         return;
       }
       if (key === "arrowright" && !shift && !ctrl) {
         e.preventDefault();
-        const c = Math.min(
-          state.cursor + CURSOR_NUDGE_SAMPLES,
-          state.audioBuffer?.length ?? 0,
-        );
-        state.setCursor(c);
-        ensureCursorVisible(c);
+        if (isPlaying) {
+          const c = Math.min(
+            state.cursor + CURSOR_NUDGE_SAMPLES,
+            state.audioBuffer?.length ?? 0,
+          );
+          state.setCursor(c);
+          ensureCursorVisible(c);
+        } else {
+          const el = document.querySelector("[data-waveform-editor]");
+          const width = el ? el.clientWidth : 800;
+          const drawableWidth = Math.max(width - 40, 1);
+          const scrollDelta = Math.max(1, drawableWidth * 0.1 * state.samplesPerPixel);
+          const maxOffset = Math.max(
+            0,
+            (state.audioBuffer?.length ?? 0) - drawableWidth * state.samplesPerPixel,
+          );
+          state.setScrollOffset(Math.max(0, Math.min(maxOffset, state.scrollOffset + scrollDelta)));
+        }
         return;
       }
       if (key === "arrowleft" && ctrl) {
@@ -219,7 +248,12 @@ export function useKeyboardShortcuts() {
       }
       if (ctrl && key === "0" && !shift) {
         e.preventDefault();
-        // Zoom to fit: will be handled by component
+        state.setSamplesPerPixel(DEFAULT_SAMPLES_PER_PIXEL);
+        return;
+      }
+      if (ctrl && key === "0" && shift) {
+        e.preventDefault();
+        state.setVerticalZoom(1);
         return;
       }
 

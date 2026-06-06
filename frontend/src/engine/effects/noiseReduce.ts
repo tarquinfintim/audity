@@ -101,13 +101,13 @@ export function captureNoiseProfile(
       fft(re, im);
 
       for (let k = 0; k < fftSize; k++) {
-        avgPower[k] += re[k]! * re[k]! + im[k]! * im[k]!;
+        avgPower[k] = (avgPower[k] ?? 0) + (re[k] ?? 0) * (re[k] ?? 0) + (im[k] ?? 0) * (im[k] ?? 0);
       }
       numFrames++;
     }
 
     if (numFrames > 0) {
-      for (let k = 0; k < fftSize; k++) avgPower[k] /= numFrames;
+      for (let k = 0; k < fftSize; k++) avgPower[k] = (avgPower[k] ?? 0) / numFrames;
     }
 
     profiles.push(avgPower);
@@ -188,8 +188,8 @@ export async function applyNoiseReduction(
 
       // Overlap-add with synthesis window
       for (let i = 0; i < fftSize; i++) {
-        output[localPos + i] += re[i]! * window[i]!;
-        windowSum[localPos + i] += window[i]! * window[i]!;
+        output[localPos + i] = (output[localPos + i] ?? 0) + (re[i] ?? 0) * (window[i] ?? 0);
+        windowSum[localPos + i] = (windowSum[localPos + i] ?? 0) + (window[i] ?? 0) * (window[i] ?? 0);
       }
 
       workDone++;

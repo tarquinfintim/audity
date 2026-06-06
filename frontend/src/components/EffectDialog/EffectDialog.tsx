@@ -4,7 +4,7 @@ import { useEditorStore } from "@/store/editorStore";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
 import type { FilterType } from "@/engine/effects/filter";
 import { FILTER_PRESETS } from "@/engine/effects/filter";
-import { COMPRESSOR_PRESETS } from "@/engine/effects/compressor";
+import { COMPRESSOR_PRESETS, type CompressorParams } from "@/engine/effects/compressor";
 import type { FadeCurve } from "@/engine/effects/fade";
 import { X } from "lucide-react";
 

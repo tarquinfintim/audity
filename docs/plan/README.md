@@ -32,3 +32,4 @@ The File System Access API (used for load/save/re-load) is supported in **Chromi
 | [Features](features.md) | Detailed feature specs — editing, effects, filters, presets |
 | [Docker & Infrastructure](docker-infrastructure.md) | Docker Compose setup, dev/prod modes, build pipeline |
 | [Implementation Phases](implementation-phases.md) | Phased build plan with milestones |
+| [Waveform Scroll & Zoom Refactor](waveform-scroll-zoom-refactor.md) | Focused plan for smoother playback scrolling and zoom behavior |

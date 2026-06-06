@@ -12,6 +12,7 @@ import {
   Undo2,
   Redo2,
   CropIcon,
+  RefreshCw,
 } from "lucide-react";
 
 export function Toolbar() {
@@ -20,6 +21,10 @@ export function Toolbar() {
   const hasSelection = useEditorStore((s) => !!s.selection);
   const hasClipboard = useEditorStore((s) => !!s.clipboard);
   const canUndo = useEditorStore((s) => s.undoStack.length > 0);
+  const resetZoom = () => {
+    useEditorStore.getState().setSamplesPerPixel(256);
+    useEditorStore.getState().setVerticalZoom(1);
+  };
   const canRedo = useEditorStore((s) => s.redoStack.length > 0);
   const setEffectDialog = useUIStore((s) => s.setEffectDialog);
 
@@ -87,6 +92,18 @@ export function Toolbar() {
           shortcut="Ctrl+T"
           onClick={engine.trim}
           disabled={!hasSelection}
+        />
+      </ToolGroup>
+
+      <ToolDivider />
+
+      {/* Zoom */}
+      <ToolGroup>
+        <ToolBtn
+          icon={<RefreshCw size={16} />}
+          label="Reset Zoom"
+          shortcut="Ctrl+0"
+          onClick={resetZoom}
         />
       </ToolGroup>
 

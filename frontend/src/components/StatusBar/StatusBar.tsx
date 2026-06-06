@@ -47,6 +47,8 @@ export function StatusBar() {
       </span>
       <Dot />
       <span>Zoom: {samplesPerPixel} spp</span>
+      <Dot />
+      <span className="text-text-secondary">Stretch: Ctrl/Cmd+wheel · Amplitude: Shift+wheel · Reset: Ctrl+0</span>
     </div>
   );
 }

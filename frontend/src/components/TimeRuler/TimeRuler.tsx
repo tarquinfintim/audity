@@ -1,5 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useEditorStore } from "@/store/editorStore";
+import { usePlaybackStore } from "@/store/playbackStore";
+import { useAudioEngine } from "@/hooks/useAudioEngine";
 import { TIME_RULER_HEIGHT } from "@/lib/constants";
 import { formatTime } from "@/lib/formatTime";
 
@@ -12,6 +14,8 @@ export function TimeRuler() {
   const scrollOffset = useEditorStore((s) => s.scrollOffset);
   const samplesPerPixel = useEditorStore((s) => s.samplesPerPixel);
   const sampleRate = useEditorStore((s) => s.sampleRate);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const { play, stop } = useAudioEngine();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -84,8 +88,13 @@ export function TimeRuler() {
       if (x < 0) return;
       const sample = Math.floor(scrollOffset + x * samplesPerPixel);
       useEditorStore.getState().setCursor(Math.min(sample, audioBuffer.length));
+
+      if (isPlaying) {
+        stop();
+        requestAnimationFrame(() => play());
+      }
     },
-    [audioBuffer, scrollOffset, samplesPerPixel],
+    [audioBuffer, scrollOffset, samplesPerPixel, isPlaying, play, stop],
   );
 
   if (!audioBuffer) return null;

@@ -1,5 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useEditorStore } from "@/store/editorStore";
+import { usePlaybackStore } from "@/store/playbackStore";
+import { useAudioEngine } from "@/hooks/useAudioEngine";
 import { computePeaks } from "@/engine/waveform";
 import { OVERVIEW_HEIGHT } from "@/lib/constants";
 
@@ -11,6 +13,8 @@ export function WaveformOverview() {
   const audioBuffer = useEditorStore((s) => s.audioBuffer);
   const scrollOffset = useEditorStore((s) => s.scrollOffset);
   const samplesPerPixel = useEditorStore((s) => s.samplesPerPixel);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const { play, stop } = useAudioEngine();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -86,8 +90,13 @@ export function WaveformOverview() {
       store.setCursor(sample);
       store.setSelection(null);
       store.setScrollOffset(Math.max(0, sample - viewportSamples / 2));
+
+      if (isPlaying) {
+        stop();
+        requestAnimationFrame(() => play());
+      }
     },
-    [audioBuffer, width, samplesPerPixel],
+    [audioBuffer, width, samplesPerPixel, isPlaying, play, stop],
   );
 
   if (!audioBuffer) return null;

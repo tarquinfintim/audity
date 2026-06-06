@@ -1,3 +1,21 @@
+declare global {
+  interface Window {
+    showOpenFilePicker?: (options?: {
+      types?: Array<{
+        description?: string;
+        accept?: Record<string, string[]>;
+      }>;
+    }) => Promise<FileSystemFileHandle[]>;
+    showSaveFilePicker?: (options: {
+      suggestedName?: string;
+      types?: Array<{
+        description?: string;
+        accept?: Record<string, string[]>;
+      }>;
+    }) => Promise<FileSystemFileHandle>;
+  }
+}
+
 /**
  * File System Access API wrapper with <input type="file"> fallback.
  */
@@ -16,7 +34,12 @@ export async function openAudioFile(): Promise<{
   handle?: FileSystemFileHandle;
 }> {
   if (supportsFileSystemAccess()) {
-    const [handle] = await window.showOpenFilePicker({
+    const picker = window.showOpenFilePicker;
+    if (!picker) {
+      throw new Error("File System Access API is unavailable");
+    }
+
+    const [handle] = await picker({
       types: [
         {
           description: "Audio files",
@@ -24,6 +47,10 @@ export async function openAudioFile(): Promise<{
         },
       ],
     });
+    if (!handle) {
+      throw new Error("No file handle returned");
+    }
+
     const file = await handle.getFile();
     return { file, handle };
   }
@@ -68,7 +95,12 @@ export async function saveFile(
 
   if (supportsFileSystemAccess()) {
     try {
-      const handle = await window.showSaveFilePicker({
+      const picker = window.showSaveFilePicker;
+      if (!picker) {
+        return undefined;
+      }
+
+      const handle = await picker({
         suggestedName,
         types: [
           {

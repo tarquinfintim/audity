@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { DEFAULT_SAMPLES_PER_PIXEL } from "@/lib/constants";
+import {
+  DEFAULT_SAMPLES_PER_PIXEL,
+  MAX_VERTICAL_ZOOM,
+  MIN_VERTICAL_ZOOM,
+} from "@/lib/constants";
 
 export interface Selection {
   start: number; // sample index
@@ -114,7 +118,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ samplesPerPixel: Math.max(1, Math.min(65536, spp)) }),
   setScrollOffset: (offset) => set({ scrollOffset: Math.max(0, Math.floor(offset)) }),
   setVerticalZoom: (vz) =>
-    set({ verticalZoom: Math.max(1, Math.min(128, vz)) }),
+    set({ verticalZoom: Math.max(MIN_VERTICAL_ZOOM, Math.min(MAX_VERTICAL_ZOOM, vz)) }),
   setClipboard: (data) => set({ clipboard: data }),
   setModified: (v) => set({ modified: v }),
   setFileHandle: (h) => set({ fileHandle: h }),

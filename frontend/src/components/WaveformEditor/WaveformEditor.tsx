@@ -4,6 +4,10 @@ import { usePlaybackStore } from "@/store/playbackStore";
 import { useUIStore } from "@/store/uiStore";
 import { computePeaks } from "@/engine/waveform";
 import { getPlaybackEngine } from "@/engine/playback";
+import {
+  MAX_SAMPLES_PER_PIXEL,
+  MIN_SAMPLES_PER_PIXEL,
+} from "@/lib/constants";
 
 export function WaveformEditor() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -196,32 +200,37 @@ export function WaveformEditor() {
   useEffect(() => {
     if (!isPlaying || !audioBuffer) return;
 
-    let animId: number;
+    let animId = 0;
+    const scaleWidth = 40;
+
     const animate = () => {
       const engine = getPlaybackEngine();
       const timeSec = engine.currentTime;
-      const sample = Math.floor(timeSec * audioBuffer.sampleRate);
-      usePlaybackStore.getState().setPlaybackPosition(timeSec);
+      const sample = timeSec * audioBuffer.sampleRate;
       const store = useEditorStore.getState();
+
+      usePlaybackStore.getState().setPlaybackPosition(timeSec);
       store.setCursor(sample);
 
-      // Auto-scroll: once cursor enters last quarter, scroll to keep it there
-      const drawableWidth = canvasWidth - 40;
+      const drawableWidth = Math.max(canvasWidth - scaleWidth, 1);
       const viewportSamples = drawableWidth * store.samplesPerPixel;
-      const cursorRelative = sample - store.scrollOffset;
-      const threshold = viewportSamples * 0.75;
+      const cursorPx = scaleWidth + (sample - store.scrollOffset) / store.samplesPerPixel;
+      const marginPx = Math.max(24, drawableWidth * 0.15);
 
-      if (cursorRelative > threshold) {
-        store.setScrollOffset(sample - threshold);
-      } else if (cursorRelative < 0) {
-        store.setScrollOffset(sample - threshold);
+      if (cursorPx > canvasWidth - marginPx) {
+        const nextOffset = sample - (canvasWidth - scaleWidth - marginPx) * store.samplesPerPixel;
+        store.setScrollOffset(Math.max(0, nextOffset));
+      } else if (cursorPx < scaleWidth + marginPx) {
+        const nextOffset = Math.max(0, sample - marginPx * store.samplesPerPixel);
+        store.setScrollOffset(nextOffset);
       }
 
       renderFrame();
-      animId = requestAnimationFrame(animate);
+      animId = window.requestAnimationFrame(animate);
     };
-    animId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animId);
+
+    animId = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(animId);
   }, [isPlaying, audioBuffer, canvasWidth, renderFrame]);
 
   // Re-render on state changes when NOT playing
@@ -297,31 +306,51 @@ export function WaveformEditor() {
       e.preventDefault();
       const state = useEditorStore.getState();
 
+      const rect = canvasRef.current?.getBoundingClientRect();
+      const pointerX = rect ? e.clientX - rect.left : canvasWidth / 2;
+      const scaleWidth = 40;
+      const pointerSample = Math.max(
+        0,
+        Math.floor(state.scrollOffset + (pointerX - scaleWidth) * state.samplesPerPixel),
+      );
+
       if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
-        // Shift+scroll → vertical zoom
-        const factor = e.deltaY > 0 ? 0.8 : 1.25;
+        const factor = e.deltaY > 0 ? 0.9 : 1.1;
         state.setVerticalZoom(state.verticalZoom * factor);
-      } else if (e.ctrlKey || e.metaKey) {
-        // Pinch-zoom or Ctrl+scroll → horizontal zoom
-        const factor = 1 + e.deltaY * 0.01;
-        const newSpp = Math.max(
-          1,
-          Math.min(65536, Math.round(state.samplesPerPixel * factor)),
-        );
-        state.setSamplesPerPixel(newSpp);
-      } else {
-        // Trackpad two-finger: use deltaX for horizontal, deltaY as fallback
-        const dx = e.deltaX !== 0 ? e.deltaX : e.deltaY;
-        const scrollDelta = dx * state.samplesPerPixel;
-        const drawableWidth = canvasWidth - 40;
-        const maxOffset = Math.max(
-          0,
-          (state.audioBuffer?.length ?? 0) - drawableWidth * state.samplesPerPixel,
-        );
-        state.setScrollOffset(
-          Math.max(0, Math.min(maxOffset, state.scrollOffset + scrollDelta)),
-        );
+        return;
       }
+
+      if (e.ctrlKey || e.metaKey) {
+        const factor = Math.exp(-e.deltaY * 0.0006);
+        const nextSpp = Math.max(
+          MIN_SAMPLES_PER_PIXEL,
+          Math.min(MAX_SAMPLES_PER_PIXEL, state.samplesPerPixel * factor),
+        );
+
+        if (nextSpp !== state.samplesPerPixel) {
+          const nextOffset = Math.max(
+            0,
+            Math.min(
+              Math.max(0, (state.audioBuffer?.length ?? 0) - (canvasWidth - scaleWidth) * nextSpp),
+              pointerSample - (pointerX - scaleWidth) * nextSpp,
+            ),
+          );
+          state.setSamplesPerPixel(nextSpp);
+          state.setScrollOffset(nextOffset);
+        }
+        return;
+      }
+
+      const dx = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+      const scrollDelta = dx * Math.max(1, state.samplesPerPixel / 4);
+      const drawableWidth = Math.max(canvasWidth - scaleWidth, 1);
+      const maxOffset = Math.max(
+        0,
+        (state.audioBuffer?.length ?? 0) - drawableWidth * state.samplesPerPixel,
+      );
+      state.setScrollOffset(
+        Math.max(0, Math.min(maxOffset, state.scrollOffset + scrollDelta)),
+      );
     },
     [canvasWidth],
   );

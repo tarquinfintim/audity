@@ -1,6 +1,8 @@
 export const MIN_SAMPLES_PER_PIXEL = 1;
 export const MAX_SAMPLES_PER_PIXEL = 65536;
 export const DEFAULT_SAMPLES_PER_PIXEL = 256;
+export const MIN_VERTICAL_ZOOM = 0.25;
+export const MAX_VERTICAL_ZOOM = 64;
 
 export const WAVEFORM_HEIGHT = 300;
 export const OVERVIEW_HEIGHT = 48;
